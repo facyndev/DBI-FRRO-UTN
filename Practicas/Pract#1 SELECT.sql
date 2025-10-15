@@ -10,14 +10,17 @@ DESCRIBE `agencia_personal`.`empresas`;
 
 -- otra manera
 USE `information_schema`;
-select * from columns where table_schema='agencia_personal' and table_name="empresas";
+select * from `information_schema`.`columns` where table_schema='agencia_personal' and table_name="empresas";
 
 -- comentarios 
 # comentarios
-
 SELECT * FROM `agencia_personal`.`empresas`;
 SELECT cuit, razon_social FROM `agencia_personal`.`empresas`;
 
+-- Mostrar la estructura de la tabla Personas. Mostrar el apellido y nombre y la fecha de
+-- registro en la agencia.+
+DESCRIBE `agencia_personal`.`personas`;
+SELECT apellido, nombre, fecha_registro_agencia FROM `agencia_personal`.`personas`;
 
 -- 3) Guardar el siguiente query en un archivo de extensión .sql, para luego correrlo.
 -- Mostrar los títulos con el formato de columna: Código Descripción y Tipo ordenarlo
@@ -66,6 +69,17 @@ SELECT CONCAT(apellido, ", ", nombre) "Apellido y Nombre",
     FROM `agencia_personal`.`personas`
 	WHERE dni="28675888";
 
+-- 5) Mostrar los datos de ej. Anterior, pero para las personas 27890765, 29345777 y
+-- 31345778. Ordenadas por fecha de Nacimiento
+SELECT 
+	CONCAT(apellido, ", ", nombre) "Apellido y Nombre",
+	DATE_FORMAT(fecha_nacimiento, "%Y-%m-%d") "Fecha de nacimiento",
+    Telefono "Telefono",
+    direccion "Direccion"
+	FROM `agencia_personal`.`personas`
+    WHERE dni IN ("27890765", "29345777", "31345778")
+    ORDER BY fecha_nacimiento;
+
 -- 6) Mostrar las personas cuyo apellido empiece con la letra ‘G’.
 -- |Apellido y Nombre (concatenados)|Fecha Nac. |Teléfono |Dirección|
 SELECT CONCAT(apellido, ", ", nombre) "Apellido y Nombre", 
@@ -80,6 +94,24 @@ SELECT nombre, apellido,
 	DATE_FORMAT(fecha_nacimiento, "%d/%m/%Y") "Fecha Nac."
 	FROM `agencia_personal`.`personas`
 	WHERE `fecha_nacimiento` BETWEEN "1980-01-01" AND "2000-12-31";
+    
+-- 8) Mostrar las solicitudes que hayan sido hechas alguna vez ordenados en forma ascendente
+-- por fecha de solicitud
+SELECT * FROM `agencia_personal`.`solicitudes_empresas`
+ORDER BY fecha_solicitud ASC;
+
+-- 9) Mostrar los antecedentes laborales que aún no hayan terminado su relación laboral
+-- ordenados por fecha desde
+SELECT * FROM `agencia_personal`.`antecedentes`
+WHERE fecha_hasta IS NULL
+ORDER BY fecha_desde;
+
+-- 10)Mostrar aquellos antecedentes laborales que finalizaron y cuya fecha hasta no esté entre
+-- junio del 2013 a diciembre de 2013, ordenados por número de DNI del empleado.
+SELECT dni, cod_cargo, fecha_desde, fecha_hasta FROM `agencia_personal`.`antecedentes`
+	WHERE fecha_hasta IS NOT NULL 
+	AND fecha_hasta NOT BETWEEN "2013-06-01" AND "2013-12-31"
+	ORDER BY dni;
 
 -- 11) Mostrar los contratos cuyo salario sea mayor que 2000 y trabajen en las empresas 30-10504876-5 o 30-21098732-4.
 -- Rotule el encabezado:
@@ -95,6 +127,21 @@ SELECT TRUNCATE(3.456, 2);  -- 3.45
 SELECT ROUND(3.456, 2);  -- 3.46
 SELECT CEIL(3.456);  -- 4 TECHO 
 SELECT FLOOR(3.456);  -- 3 PISO 
+
+-- 12) Mostrar los títulos técnicos
+SELECT cod_titulo, desc_titulo, tipo_titulo FROM `agencia_personal`.`titulos`
+WHERE desc_titulo LIKE "%tecnico%";
+
+-- 13) Seleccionar las solicitudes cuya fecha sea mayor que ‘21/09/2013’ y el código de cargo
+-- sea 6; o hayan solicitado aspirantes de sexo femenino
+SELECT * FROM `agencia_personal`.`solicitudes_empresas`
+	WHERE fecha_solicitud > "2013-09-21" AND cod_cargo = 6 OR sexo = "Femenino"; 
+    
+-- 14) Seleccionar los contratos con un salario pactado mayor que 2000 y que no hayan sido
+-- terminado
+SELECT * FROM `agencia_personal`.`contratos`
+	WHERE sueldo - ((sueldo * porcentaje_comision) / 100) > 2000 AND fecha_finalizacion_contrato IS NOT NULL AND fecha_caducidad IS NULL;
+
 
 
 

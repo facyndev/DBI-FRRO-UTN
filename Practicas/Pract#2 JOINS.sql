@@ -6,13 +6,47 @@
 -- 1) Mostrar del Contrato 5: DNI, Apellido y Nombre de la persona contratada y el
 -- sueldo acordado en el contrato
 -- |nombre |apellido |sueldo |dni|
+SELECT P.nombre, P.apellido, C.sueldo, P.dni FROM `agencia_personal`.`personas` P
+INNER JOIN `agencia_personal`.`contratos` C ON P.dni=C.dni
+WHERE C.nro_contrato = 5;
 
 -- 2) ¿Quiénes fueron contratados por la empresa Viejos Amigos o Tráigame Eso?
 -- Mostrar el DNI, número de contrato, fecha de incorporación, fecha de solicitud en la
 -- agencia de los contratados y fecha de caducidad (si no tiene fecha de caducidad colocar
 -- ‘Sin Fecha’). Ordenado por fecha de contrato y nombre de empresa
 -- | Dni |nro_contrato|fecha_incorporacion|fecha_solicitud|fecha_caducidad|
+SELECT 
+	C.dni, 
+    C.nro_contrato, 
+    C.fecha_incorporacion, 
+    C.fecha_solicitud, 
+    IFNULL(C.fecha_caducidad, "Sin Fecha") 
+    FROM `agencia_personal`.`contratos` C
+	INNER JOIN `agencia_personal`.`solicitudes_empresas` S ON C.cuit=S.cuit AND C.cod_cargo=S.cod_cargo AND C.fecha_solicitud=S.fecha_solicitud
+    INNER JOIN `agencia_personal`.`empresas` E ON E.cuit=S.cuit
+    WHERE E.razon_social IN ("Tráigame Eso", "Viejos Amigos")
+    ORDER BY C.fecha_solicitud, E.razon_social;
 
+-- 3 Listado de las solicitudes consignando razón social, dirección y e_mail de la
+-- empresa, descripción del cargo solicitado y años de experiencia solicitados, ordenado por
+-- fecha d solicitud y descripción de cargo.
+SELECT E.razon_social, E.direccion, E.e_mail, C.desc_cargo, S.anios_experiencia 
+	FROM `agencia_personal`.`solicitudes_empresas` S
+    INNER JOIN `agencia_personal`.`empresas` E ON S.cuit=E.cuit
+    INNER JOIN `agencia_personal`.`cargos` C ON S.cod_cargo=C.cod_cargo
+    ORDER BY S.fecha_solicitud, C.desc_cargo;
+    
+-- 4) Listar todos los candidatos con título de bachiller o un título de educación no
+-- formal. Mostrar nombre y apellido, descripción del título y DNI.
+SELECT PS.dni, PS.nombre, PS.apellido, T.desc_titulo FROM `agencia_personal`.`personas` PS
+	INNER JOIN `agencia_personal`.`personas_titulos` PT ON PS.dni=PT.dni
+	INNER JOIN `agencia_personal`.`titulos` T ON PT.cod_titulo=T.cod_titulo
+	WHERE T.desc_titulo = "Bachiller" OR T.tipo_titulo LIKE "%no formal%";
+    
+-- 5) Realizar el punto 4 sin mostrar el campo DNI pero para todos los títulos.
+SELECT PS.nombre, PS.apellido, T.desc_titulo FROM `agencia_personal`.`personas` PS
+	INNER JOIN `agencia_personal`.`personas_titulos` PT ON PS.dni=PT.dni
+	INNER JOIN `agencia_personal`.`titulos` T ON PT.cod_titulo=T.cod_titulo;
 
 -- 6) Empleados que no tengan referencias o hayan puesto de referencia a Armando
 -- Esteban Quito o Felipe Rojas. Mostrarlos de la siguiente forma:
@@ -45,25 +79,21 @@ SELECT
 
 -- 8) Mostrar los antecedentes de cada postulante:
 -- Postulante (nombre y apellido) Cargo (descripción del cargo)
-SELECT 
-	CONCAT(P.nombre, " ", P.apellido) "Postulante", 
-    C.desc_cargo "Cargo"
-    FROM `agencia_personal`.`antecedentes` A 
-		INNER JOIN `agencia_personal`.`personas` P ON A.dni=P.dni
-        INNER JOIN `agencia_personal`.`cargos` C ON A.cod_cargo=C.cod_cargo;
-
-
+SELECT CONCAT(P.nombre, " ", P.apellido) "Postulante", C.desc_cargo "Cargo"
+	FROM `agencia_personal`.`personas` P
+    INNER JOIN `agencia_personal`.`antecedentes` A ON P.dni=A.dni
+    INNER JOIN `agencia_personal`.`cargos` C ON C.cod_cargo=A.cod_cargo;
 
 -- 9) Mostrar todas las evaluaciones realizadas para cada solicitud ordenar en forma
 -- ascendente por empresa y descendente por cargo:
-SELECT E.razon_social "Empresa", C.desc_cargo "Cargo", EV.desc_evaluacion, EE.resultado 
-	FROM `agencia_personal`.`empresas` E 
-		INNER JOIN `agencia_personal`.`solicitudes_empresas` SE ON E.cuit=SE.cuit
-		INNER JOIN `agencia_personal`.`cargos` C ON SE.cod_cargo=C.cod_cargo
-		INNER JOIN `agencia_personal`.`entrevistas`EN ON SE.cuit=EN.cuit and SE.cod_cargo=EN.cod_cargo and SE.fecha_solicitud=EN.fecha_solicitud
-		INNER JOIN `agencia_personal`.`entrevistas_evaluaciones` EE ON EN.nro_entrevista=EE.nro_entrevista
-		INNER JOIN `agencia_personal`.`evaluaciones` EV ON EE.cod_evaluacion=EV.cod_evaluacion 
-	ORDER BY E.razon_social ASC, C.desc_cargo DESC;
+SELECT EMP.razon_social "Empresa", CAR.desc_cargo "Cargo", EVA.desc_evaluacion "Desc_Evaluacion", EEL.resultado "Resultado" 
+	FROM `agencia_personal`.`solicitudes_empresas` SOL
+		INNER JOIN `agencia_personal`.`empresas` EMP ON SOL.cuit=EMP.cuit 
+		INNER JOIN `agencia_personal`.`cargos` CAR ON SOL.cod_cargo=CAR.cod_cargo
+		INNER JOIN `agencia_personal`.`entrevistas` ENT ON SOL.cuit=ENT.cuit AND SOL.cod_cargo=ENT.cod_cargo AND SOL.fecha_solicitud=ENT.fecha_solicitud
+		INNER JOIN `agencia_personal`.`entrevistas_evaluaciones` EEL ON ENT.nro_entrevista=EEL.nro_entrevista
+		INNER JOIN `agencia_personal`.`evaluaciones` EVA ON EEL.cod_evaluacion=EVA.cod_evaluacion
+    ORDER BY EMP.razon_social ASC, CAR.desc_cargo DESC;
 
 -- 10) Listar las empresas solicitantes mostrando la razón social y fecha de cada solicitud,
 -- y descripción del cargo solicitado. Si hay empresas que no hayan solicitado que salga la
@@ -139,9 +169,6 @@ SELECT desc_cargo "Cargo", P.dni "DNI", apellido "Apellido", razon_social "Razó
         LEFT JOIN `agencia_personal`.`personas` P ON A.dni=P.dni
         LEFT JOIN `agencia_personal`.`empresas` E ON A.cuit=E.cuit
         ;
-        
-
-
 
 use `afatse`;
 -- BASE DE DATOS: AFATSE
