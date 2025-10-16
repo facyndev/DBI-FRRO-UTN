@@ -195,6 +195,22 @@ SELECT CI.cuil FROM `afatse`.`cursos_instructores` CI
         )
     GROUP BY CI.cuil;
     
+-- 14) Alumnos que tengan todas sus cuotas pagas hasta la fecha.
+
+# Esta bien la salida pero esta a medio resolver, hay cosas que se tienen que tener en cuenta. Revisar
+SELECT 
+	ALU.dni, 
+    ALU.nombre, 
+    ALU.apellido, 
+    ALU.tel, 
+    ALU.email,
+    ALU.direccion
+	FROM `afatse`.`alumnos` ALU
+    INNER JOIN `afatse`.`cuotas` CUO ON ALU.dni = CUO.dni
+    INNER JOIN `afatse`.`inscripciones` INS ON INS.dni = ALU.dni
+    WHERE (CUO.fecha_pago BETWEEN INS.fecha_inscripcion AND CURDATE()) AND CUO.fecha_pago IS NOT NULL
+    GROUP BY ALU.dni
+    ORDER BY ALU.dni;
 
 -- 16)Para conocer la disponibilidad de lugar en los cursos que empiezan en abril para
 -- lanzar una campaña se desea conocer la cantidad de alumnos inscriptos a los cursos
