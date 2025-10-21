@@ -196,21 +196,44 @@ SELECT CI.cuil FROM `afatse`.`cursos_instructores` CI
     GROUP BY CI.cuil;
     
 -- 14) Alumnos que tengan todas sus cuotas pagas hasta la fecha.
+DROP TEMPORARY TABLE IF EXISTS `afatse`.`tt_alumnos_cuotas_impagas`;
 
-# Esta bien la salida pero esta a medio resolver, hay cosas que se tienen que tener en cuenta. Revisar
+CREATE TEMPORARY TABLE `afatse`.`tt_alumnos_cuotas_impagas`
+	SELECT ALU.dni FROM `afatse`.`alumnos` ALU
+	INNER JOIN `afatse`.`cuotas` CUO ON ALU.dni=CUO.dni
+    WHERE CUO.fecha_pago IS NULL
+	GROUP BY ALU.DNI;
+
 SELECT 
-	ALU.dni, 
-    ALU.nombre, 
-    ALU.apellido, 
-    ALU.tel, 
-    ALU.email,
-    ALU.direccion
-	FROM `afatse`.`alumnos` ALU
-    INNER JOIN `afatse`.`cuotas` CUO ON ALU.dni = CUO.dni
-    INNER JOIN `afatse`.`inscripciones` INS ON INS.dni = ALU.dni
-    WHERE (CUO.fecha_pago BETWEEN INS.fecha_inscripcion AND CURDATE()) AND CUO.fecha_pago IS NOT NULL
-    GROUP BY ALU.dni
-    ORDER BY ALU.dni;
+	ALU.*
+	FROM `afatse`.`cuotas` CUO
+    INNER JOIN `afatse`.`alumnos` ALU ON ALU.dni = CUO.dni
+    WHERE CUO.fecha_pago <= CURDATE() AND ALU.dni NOT IN (SELECT dni FROM `afatse`.`tt_alumnos_cuotas_impagas`)
+	GROUP BY ALU.dni
+	ORDER BY ALU.dni ASC;
+    
+DROP TEMPORARY TABLE `afatse`.`tt_alumnos_cuotas_impagas`;
+
+-- 15) Alumnos cuyo promedio supere al del curso que realizan. Mostrar dni, nombre y apellido,
+-- promedio y promedio del curso.
+DROP TEMPORARY TABLE IF EXISTS `afatse`.`tt_curso_promedio`;
+
+# Promedio de las notas de todos los alumnos de cada curso con su plan correspondiente
+CREATE TEMPORARY TABLE `afatse`.`tt_curso_promedio`
+	SELECT EVA.nro_curso, EVA.nom_plan, AVG(EVA.nota) "prome"
+		FROM `afatse`.`evaluaciones` EVA
+		GROUP BY EVA.nro_curso, EVA.nom_plan;
+        
+# Alumnos cuyo promedio de notas del curso al que esta inscripto es mayor al promedio general
+SELECT ALU.dni, ALU.nombre, ALU.apellido, AVG(EVA.nota), CURP.prome FROM `afatse`.`alumnos` ALU
+	INNER JOIN `afatse`.`inscripciones` INS ON ALU.dni = INS.dni
+    INNER JOIN `afatse`.`evaluaciones` EVA ON EVA.dni = INS.dni AND EVA.nro_curso = INS.nro_curso AND EVA.nom_plan = INS.nom_plan
+    INNER JOIN `afatse`.`tt_curso_promedio` CURP ON CURP.nro_curso = EVA.nro_curso AND CURP.nom_plan = EVA.nom_plan
+    GROUP BY ALU.dni, EVA.nro_curso, EVA.nom_plan, CURP.prome
+    HAVING AVG(EVA.nota) > CURP.prome
+    ORDER BY (ALU.nombre) ASC;
+	
+DROP TEMPORARY TABLE `afatse`.`tt_curso_promedio`;
 
 -- 16)Para conocer la disponibilidad de lugar en los cursos que empiezan en abril para
 -- lanzar una campaña se desea conocer la cantidad de alumnos inscriptos a los cursos
@@ -221,5 +244,14 @@ SELECT
 -- Ayuda: tener en cuenta el uso de los paréntesis y la precedencia de los operadores
 -- matemáticos.
 -- nro_curso fecha_ini salon cupo count( dni ) ( cupo - count( dni ) )
+
+-- Objetivo: Conocer disponibilidad de cursos que empiezan en abril
+-- A traves de: Conocer cuantos inscriptos que hay desde 1/04/2014
+
+DROP TEMPORARY TABLE IF EXISTS `afatse`.`tt_cantidad_inscriptos_abril`;
+CREATE TEMPORARY TABLE `afatse`.`tt_cantidad_inscriptos_abril`
+	SELECT INS.nro_curso, INS.nom_plan, COUNT(INS.dni) FROM `afatse`.`inscripciones` INS
+    WHERE INS.fecha_inscripcion >= "2014-04-1"
+	GROUP BY INS.nro_curso, INS.nom_plan;
 
 
