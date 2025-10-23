@@ -248,10 +248,21 @@ DROP TEMPORARY TABLE `afatse`.`tt_curso_promedio`;
 -- Objetivo: Conocer disponibilidad de cursos que empiezan en abril
 -- A traves de: Conocer cuantos inscriptos que hay desde 1/04/2014
 
-DROP TEMPORARY TABLE IF EXISTS `afatse`.`tt_cantidad_inscriptos_abril`;
-CREATE TEMPORARY TABLE `afatse`.`tt_cantidad_inscriptos_abril`
-	SELECT INS.nro_curso, INS.nom_plan, COUNT(INS.dni) FROM `afatse`.`inscripciones` INS
-    WHERE INS.fecha_inscripcion >= "2014-04-1"
-	GROUP BY INS.nro_curso, INS.nom_plan;
+
+SELECT 
+    CUR.nro_curso "Curso", 
+    CUR.fecha_ini "Fecha inicio", 
+    CUR.salon,
+    CUR.cupo,
+    COUNT(INS.dni) "Cantidad de inscriptos", 
+    CUR.cupo - COUNT(INS.dni) "Disponibles"
+    FROM `afatse`.`inscripciones` INS
+    RIGHT JOIN `afatse`.`cursos` CUR ON INS.nro_curso = CUR.nro_curso AND INS.nom_plan = CUR.nom_plan
+    WHERE CUR.fecha_ini >= "2014-04-1"
+	GROUP BY CUR.nom_plan, CUR.nro_curso
+    HAVING (((CUR.cupo - COUNT(INS.dni)) / CUR.cupo) * 100) > 80; 
+    
+
+    
 
 
