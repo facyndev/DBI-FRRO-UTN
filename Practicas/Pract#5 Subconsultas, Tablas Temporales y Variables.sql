@@ -262,6 +262,35 @@ SELECT
 	GROUP BY CUR.nom_plan, CUR.nro_curso
     HAVING (((CUR.cupo - COUNT(INS.dni)) / CUR.cupo) * 100) > 80; 
     
+    
+# Indicar el último incremento de los valores de los planes de capacitación, consignando
+# nombre del plan fecha del valor actual, fecha el valor anterior, valor actual, valor anterior y
+# diferencia entre los valores. Si el curso tiene un único valor mostrar la fecha anterior en
+# NULL el valor anterior en 0 y la diferencia en 0.
+DROP TEMPORARY TABLE IF EXISTS `afatse`.`tt_fecha_ultimo_valor_plan`;
+CREATE TEMPORARY TABLE `afatse`.`tt_fecha_ultimo_valor_plan`
+	SELECT VAL.nom_plan, MAX(VAL.fecha_desde_plan) "fecha_actual" FROM `afatse`.`valores_plan` VAL
+	GROUP BY VAL.nom_plan;
+
+DROP TEMPORARY TABLE IF EXISTS `afatse`.`tt_diferencia_dias_plan_anterior`;
+CREATE TEMPORARY TABLE `afatse`.`tt_diferencia_dias_plan_anterior`
+SELECT VAL.nom_plan, MIN(DATEDIFF(FUVP.fecha_actual, VAL.fecha_desde_plan)) "menor_diferencia_dias" FROM `afatse`.`valores_plan` VAL 
+	LEFT JOIN `afatse`.`tt_fecha_ultimo_valor_plan` FUVP ON FUVP.nom_plan = VAL.nom_plan
+	WHERE NOT DATEDIFF(FUVP.fecha_actual, VAL.fecha_desde_plan) = 0 
+    GROUP BY VAL.nom_plan;
+	
+DROP TEMPORARY TABLE IF EXISTS `afatse`.`tt_planes_anteriores`;
+CREATE TEMPORARY TABLE `afatse`.`tt_planes_anteriores`
+	SELECT VAL.nom_plan, VAL.fecha_desde_plan, VAL.valor_plan FROM `afatse`.`valores_plan` VAL 
+		LEFT JOIN `afatse`.`tt_fecha_ultimo_valor_plan` FUVP ON FUVP.nom_plan = VAL.nom_plan
+		INNER JOIN  `afatse`.`tt_diferencia_dias_plan_anterior` DDPA ON DDPA.nom_plan = VAL.nom_plan
+        WHERE DATEDIFF(FUVP.fecha_actual, VAL.fecha_desde_plan) = DDPA.menor_diferencia_dias;
+
+SELECT * FROM `afatse`.`tt_planes_anteriores`;
+
+	
+    
+
 
     
 
